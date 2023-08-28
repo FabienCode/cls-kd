@@ -34,7 +34,6 @@ model = dict(
 
 # data settings
 train_dataloader = dict(batch_size=256)
-# train_dataloader = dict(batch_size=1)
 
 # schedule settings
 optim_wrapper = dict(
