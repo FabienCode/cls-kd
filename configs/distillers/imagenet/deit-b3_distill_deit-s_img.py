@@ -15,7 +15,7 @@ kd = False
 nkd = True
 vitkd = True
 
-train_dataloader = dict(batch_size=2)
+train_dataloader = dict(batch_size=256)
 
 # method details
 model = dict(
