@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from mmcls.registry import MODELS
 
-from .mvkd_utils import Model
+from .mvkd_utils import FeatRec
 
 
 @MODELS.register_module()
@@ -90,9 +90,7 @@ class MVKDLoss(nn.Module):
                              (1. - alphas_cumprod_prev) * torch.sqrt(alphas) / (1. - alphas_cumprod))
 
         self.use_condition = self.use_condition
-        self.rec_module = Model(ch=teacher_dims, out_ch=teacher_dims, ch_mult=(1, 1), num_res_blocks=1,
-                                attn_resolutions=[16], in_channels=teacher_dims, resolution=16, dropout=0.0,
-                                use_condition=self.use_condition)
+        self.rec_module = FeatRec(in_dim=teacher_dims, d_model=256, nhead=8, dropout=0.1)
 
     def forward(self,
                 preds_S,
@@ -108,7 +106,7 @@ class MVKDLoss(nn.Module):
         high_s = preds_S[1]
         high_t = preds_T[1]
         x_feature_t, noise, t = self.prepare_diffusion_concat(high_t)
-        rec_feature = self.rec_module(x_feature_t.float(), t)
+        rec_feature = self.rec_module(x_feature_t.unsqueeze(1).permute(0, 3, 2, 1).contiguous().float(), t)
 
         B = low_s.shape[0]
         loss_mse = nn.MSELoss(reduction='sum')
