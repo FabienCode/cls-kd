@@ -102,6 +102,7 @@ class MVKDLoss(nn.Module):
             preds_S(List): [B*2*N*D, B*N*D], student's feature map
             preds_T(List): [B*2*N*D, B*N*D], teacher's feature map
         """
+        cur_epochs = self.rec_module.epoch
         low_s = preds_S[0]
         low_t = preds_T[0]
         high_s = preds_S[1]
@@ -144,6 +145,9 @@ class MVKDLoss(nn.Module):
         loss_gen = loss_gen / B * self.beta_vitkd / self.lambda_vitkd
 
         return loss_lr + loss_gen
+
+    def set_epoch(self, epoch):
+        self.rec_module.epoch = epoch
 
     def random_masking(self, x, mask_ratio):
         """
