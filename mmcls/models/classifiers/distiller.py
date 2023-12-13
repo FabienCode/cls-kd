@@ -183,3 +183,6 @@ class ClassificationDistiller(BaseModel, metaclass=ABCMeta):
                 s_loss[loss_name] = self.distill_losses[loss_name](fea_mid, logit_s, gt_label)
 
         return s_loss
+
+    def set_epoch(self, epoch):
+        self.epoch = epoch
