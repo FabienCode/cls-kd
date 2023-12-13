@@ -73,8 +73,6 @@ model = dict(
                  dict(methods=[dict(type='MVKDLoss',
                                     name='loss_mvkd',
                                     use_this=mvkd,
-                                    temp=1.0,
-                                    alpha=0.5,
                                     )
                                ]
                       ),

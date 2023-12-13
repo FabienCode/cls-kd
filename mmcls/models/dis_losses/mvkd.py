@@ -14,14 +14,8 @@ class MVKDLoss(nn.Module):
                  use_this,
                  student_dims,
                  teacher_dims,
-                 alpha_vitkd=0.00003,
-                 beta_vitkd=0.000003,
-                 lambda_vitkd=0.5,
                  ):
         super(MVKDLoss, self).__init__()
-        self.alpha_vitkd = alpha_vitkd
-        self.beta_vitkd = beta_vitkd
-        self.lambda_vitkd = lambda_vitkd
 
         if student_dims != teacher_dims:
             self.align2 = nn.ModuleList([
