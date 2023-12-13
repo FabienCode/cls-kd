@@ -14,7 +14,7 @@ class SetEpochInfoHook(Hook):
 
     def before_train_epoch(self, runner):
         epoch = runner.epoch
-        model = runner.model
+        model = runner.model.module.distill_losses.loss_mvkd
         if is_model_wrapper(model):
             model = model.module
         model.set_epoch(epoch)

@@ -147,7 +147,7 @@ class MVKDLoss(nn.Module):
         return loss_lr + loss_gen
 
     def set_epoch(self, epoch):
-        self.rec_module.epoch = epoch
+        self.cur_epoch = epoch
 
     def random_masking(self, x, mask_ratio):
         """
