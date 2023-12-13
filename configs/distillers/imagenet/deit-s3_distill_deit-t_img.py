@@ -72,3 +72,4 @@ model = dict(
 
                    ]
     )
+auto_scale_lr = dict(base_batch_size=2)
