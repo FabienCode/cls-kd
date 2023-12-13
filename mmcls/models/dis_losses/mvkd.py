@@ -101,7 +101,7 @@ class MVKDLoss(nn.Module):
             preds_S(List): [B*2*N*D, B*N*D], student's feature map
             preds_T(List): [B*2*N*D, B*N*D], teacher's feature map
         """
-        cur_epochs = self.rec_module.epoch
+        cur_epochs = self.epoch
         low_s = preds_S[0]
         low_t = preds_T[0]
         high_s = preds_S[1]
