@@ -20,7 +20,7 @@ class MVKDLoss(nn.Module):
                  sample_step=1,
                  snr_scale=2.0,
                  diff_feature_num=3,
-                 rec_epochs=120,
+                 rec_epochs=0,
                  use_condition=False,
                  mvkd_weight=1.0,
                  rec_weight=1.0,
