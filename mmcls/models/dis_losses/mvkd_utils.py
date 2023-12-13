@@ -29,8 +29,6 @@ class FeatRec(nn.Module):
             nn.Linear(time_dim, in_dim*2)
         )
 
-        self.block_time_mlp = nn.Sequential(nn.SiLU(), nn.Linear(in_dim, in_dim))
-
     def forward(self, f_t, t, condition=None):
         f_t1 = self.linear(f_t)
         f_t1 = self.norm(self.dropout(f_t1))

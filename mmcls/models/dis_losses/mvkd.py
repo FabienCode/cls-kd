@@ -38,20 +38,14 @@ class MVKDLoss(nn.Module):
         self.feat_weight = feat_weight
 
         if student_dims != teacher_dims:
-            self.align2 = nn.ModuleList([
-                nn.Linear(student_dims, teacher_dims, bias=True)
-                for i in range(2)])
+            # self.align2 = nn.ModuleList([
+            #     nn.Linear(student_dims, teacher_dims, bias=True)
+            #     for i in range(2)])
             self.align = nn.Linear(student_dims, teacher_dims, bias=True)
         else:
-            self.align2 = None
+            # self.align2 = None
             self.align = None
 
-        self.mask_token = nn.Parameter(torch.zeros(1, 1, teacher_dims))
-
-        self.generation = nn.Sequential(
-            nn.Conv2d(teacher_dims, teacher_dims, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(teacher_dims, teacher_dims, kernel_size=3, padding=1))
 
         # diffusion config
         num_timesteps = 1000
