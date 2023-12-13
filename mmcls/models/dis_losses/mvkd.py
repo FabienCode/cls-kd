@@ -7,6 +7,7 @@ from mmcls.registry import MODELS
 
 from .mvkd_utils import Model
 
+
 @MODELS.register_module()
 class MVKDLoss(nn.Module):
     """PyTorch version of `ViTKD: Practical Guidelines for ViT feature knowledge distillation` """
@@ -91,8 +92,6 @@ class MVKDLoss(nn.Module):
         self.rec_module = Model(ch=teacher_dims, out_ch=teacher_dims, ch_mult=(1, 1), num_res_blocks=1,
                                 attn_resolutions=[16], in_channels=teacher_dims, resolution=16, dropout=0.0,
                                 use_condition=self.use_condition)
-
-
 
     def forward(self,
                 preds_S,
@@ -191,6 +190,7 @@ def cosine_beta_schedule(timesteps, s=0.008):
     betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
     return torch.clip(betas, 0, 0.999)
 
+
 def exists(x):
     return x is not None
 
@@ -199,6 +199,7 @@ def default(val, d):
     if exists(val):
         return val
     return d() if callable(d) else d
+
 
 def extract(a, t, x_shape):
     """extract the appropriate  t  index for a batch of indices"""
