@@ -5,17 +5,16 @@ import torch.nn.functional as F
 
 
 class FeatRec(nn.Module):
-    def __init__(self, in_dim, d_model=256, nhead=8, dropout=0):
+    def __init__(self, in_dim, d_model=256, nhead=8, dropout=0.1):
         super().__init__()
         self.d_model = d_model
         self.nhead = nhead
-        self.dropout = dropout
 
         self.linear = nn.Linear(in_dim, d_model)
         self.dropout = nn.Dropout(dropout)
         self.norm = nn.LayerNorm(d_model)
 
-        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=self.dropout)
+        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
 
         self.linear1 = nn.Linear(d_model, in_dim)
         self.norm1 = nn.LayerNorm(in_dim)
