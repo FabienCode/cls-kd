@@ -73,6 +73,8 @@ model = dict(
                  dict(methods=[dict(type='MVKDLoss',
                                     name='loss_mvkd',
                                     use_this=mvkd,
+                                    student_dims=192,
+                                    teacher_dims=384,
                                     )
                                ]
                       ),
