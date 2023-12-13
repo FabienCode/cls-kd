@@ -167,6 +167,10 @@ class ClassificationDistiller(BaseModel, metaclass=ABCMeta):
                 loss_name = 'loss_nkd'
                 s_loss[loss_name] = self.distill_losses[loss_name](logit_s, logit_t, gt_label)
 
+            if 'loss_mvkd' in all_keys:
+                loss_name = 'loss_mvkd'
+                s_loss[loss_name] = self.distill_losses[loss_name](fea_s[-1][0], fea_t[-1][0])
+
         """ Self-KD """
         if self.sd:
             all_keys = self.distill_losses.keys()
