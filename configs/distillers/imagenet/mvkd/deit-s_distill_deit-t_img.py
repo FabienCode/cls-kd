@@ -81,8 +81,8 @@ model = dict(
 
                  ]
 )
-auto_scale_lr = dict(base_batch_size=2)
-train_dataloader = dict(
-    batch_size=2,
-)
+# auto_scale_lr = dict(base_batch_size=2)
+# train_dataloader = dict(
+#     batch_size=2,
+# )
 custom_hooks = [dict(type='SetEpochInfoHook')]
