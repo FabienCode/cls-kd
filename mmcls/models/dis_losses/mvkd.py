@@ -22,6 +22,9 @@ class MVKDLoss(nn.Module):
                  diff_feature_num=3,
                  rec_epochs=120,
                  use_condition=False,
+                 mvkd_weight=1.0,
+                 rec_weight=1.0,
+                 feat_weight=1.0,
                  ):
         super(MVKDLoss, self).__init__()
         self.cur_epoch = None
@@ -30,6 +33,9 @@ class MVKDLoss(nn.Module):
         self.diff_feature_num = diff_feature_num
         self.rec_epochs = rec_epochs
         self.use_condition = use_condition
+        self.mvkd_weight = mvkd_weight
+        self.rec_weight = rec_weight
+        self.feat_weight = feat_weight
 
         if student_dims != teacher_dims:
             self.align2 = nn.ModuleList([
@@ -111,17 +117,6 @@ class MVKDLoss(nn.Module):
         B = low_s.shape[0]
         loss_mse = nn.MSELoss(reduction='sum')
 
-        '''ViTKD: Mimicking'''
-        if self.align2 is not None:
-            for i in range(2):
-                if i == 0:
-                    xc = self.align2[i](low_s[:, i]).unsqueeze(1)
-                else:
-                    xc = torch.cat((xc, self.align2[i](low_s[:, i]).unsqueeze(1)), dim=1)
-        else:
-            xc = low_s
-
-        loss_lr = loss_mse(xc, low_t) / B * self.alpha_vitkd
 
         '''ViTKD: Generation'''
         if self.align is not None:
@@ -129,22 +124,21 @@ class MVKDLoss(nn.Module):
         else:
             x = high_s
 
-        # Mask tokens
-        B, N, D = x.shape
-        x, mat, ids, ids_masked = self.random_masking(x, self.lambda_vitkd)
-        mask_tokens = self.mask_token.repeat(B, N - x.shape[1], 1)
-        x_ = torch.cat([x, mask_tokens], dim=1)
-        x = torch.gather(x_, dim=1, index=ids.unsqueeze(-1).repeat(1, 1, D))
-        mask = mat.unsqueeze(-1)
+        if cur_epochs > self.first_rec_kd:
+            diffusion_x = self.ddim_sample(high_t)
+            if self.diff_num > 1:
+                for i in range(self.diff_num - 1):
+                    diffusion_x += self.ddim_sample(high_t)
+            diffusion_x /= self.diff_num
+            mvkd_loss = loss_mse(x, diffusion_x) / B * self.mvkd_weight
+        else:
+            x_feature_t, noise, t = self.prepare_diffusion_concat(high_t)
+            rec_feature_t = self.rec_module(x_feature_t.float(), t)
+            mvkd_rec = loss_mse(high_t, rec_feature_t) / B * self.rec_weight
+            mvkd_fitnet = loss_mse(x, high_t) / B * self.feat_weight
+            mvkd_loss = mvkd_rec + mvkd_fitnet
 
-        hw = int(N ** 0.5)
-        x = x.reshape(B, hw, hw, D).permute(0, 3, 1, 2)
-        x = self.generation(x).flatten(2).transpose(1, 2)
-
-        loss_gen = loss_mse(torch.mul(x, mask), torch.mul(high_t, mask))
-        loss_gen = loss_gen / B * self.beta_vitkd / self.lambda_vitkd
-
-        return loss_lr + loss_gen
+        return mvkd_loss
 
     def set_epoch(self, epoch):
         self.cur_epoch = epoch
