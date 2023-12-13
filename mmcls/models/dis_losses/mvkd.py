@@ -106,7 +106,7 @@ class MVKDLoss(nn.Module):
         high_s = preds_S[1]
         high_t = preds_T[1]
         x_feature_t, noise, t = self.prepare_diffusion_concat(high_t)
-        rec_feature = self.rec_module(x_feature_t.unsqueeze(1).permute(0, 3, 2, 1).contiguous().float(), t)
+        rec_feature = self.rec_module(x_feature_t.float(), t)
 
         B = low_s.shape[0]
         loss_mse = nn.MSELoss(reduction='sum')
