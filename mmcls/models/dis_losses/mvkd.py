@@ -24,6 +24,7 @@ class MVKDLoss(nn.Module):
                  use_condition=False,
                  ):
         super(MVKDLoss, self).__init__()
+        self.cur_epoch = None
         self.sample_step = sample_step
         self.snr_scale = snr_scale
         self.diff_feature_num = diff_feature_num
@@ -101,11 +102,13 @@ class MVKDLoss(nn.Module):
             preds_S(List): [B*2*N*D, B*N*D], student's feature map
             preds_T(List): [B*2*N*D, B*N*D], teacher's feature map
         """
-        cur_epochs = self.epoch
+        cur_epochs = self.cur_epoch
         low_s = preds_S[0]
         low_t = preds_T[0]
         high_s = preds_S[1]
         high_t = preds_T[1]
+        x_feature_t, noise, t = self.prepare_diffusion_concat(high_t)
+        rec_feature = self.rec_module(x_feature_t.float(), t)
 
         B = low_s.shape[0]
         loss_mse = nn.MSELoss(reduction='sum')
@@ -148,6 +151,86 @@ class MVKDLoss(nn.Module):
     def set_epoch(self, epoch):
         self.cur_epoch = epoch
 
+    def prepare_diffusion_concat(self, feature):
+        t = torch.randint(0, self.num_timesteps, (1,)).cuda().long()
+        noise = torch.randn_like(feature)
+
+        x_start = feature
+        x_start = (x_start * 2. - 1.) * self.scale
+
+        # noise sample
+        x = self.q_sample(x_start=x_start, t=t, noise=noise)
+
+        x = torch.clamp(x, min=-1 * self.scale, max=self.scale)
+        x = ((x / self.scale) + 1.) / 2.
+
+        return x, noise, t
+
+    def q_sample(self, x_start, t, noise=None):
+        if noise is None:
+            noise = torch.randn_like(x_start)
+
+        sqrt_alpha_cumprod_t = extract(self.sqrt_alphas_cumprod, t, x_start.shape)
+        sqrt_one_minus_alpha_cumprod_t = extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
+
+        return sqrt_alpha_cumprod_t * x_start + sqrt_one_minus_alpha_cumprod_t * noise
+
+    @torch.no_grad()
+    def ddim_sample(self, feature, conditional=None):
+        batch = feature.shape[0]
+        total_timesteps, sampling_timesteps, eta = self.num_timesteps, self.sampling_timesteps, self.ddim_sampling_eta
+
+        # [-1, 0, 1, 2, ..., T-1] when sampling_timesteps == total_timesteps
+        times = torch.linspace(-1., total_timesteps - 1, steps=sampling_timesteps + 1)
+        times = list(reversed(times.int().tolist()))
+        time_pairs = list(zip(times[:-1], times[1:]))  # [(T-1, T-2), (T-2, T-3), ..., (1, 0), (0, -1)]
+
+        f = torch.randn_like(feature)
+        x_start = None
+        for time, time_next in time_pairs:
+            time_cond = torch.full((batch,), time, dtype=torch.long).cuda()
+            self_cond = x_start if self.self_condition else None
+
+            if conditional is not None:
+                pred_noise, x_start = self.model_predictions(f.float(), time_cond, conditional)
+            else:
+                pred_noise, x_start = self.model_predictions(f.float(), time_cond)
+
+            if time_next < 0:
+                f = x_start
+                continue
+
+            alpha = self.alphas_cumprod[time]
+            alpha_next = self.alphas_cumprod[time_next]
+
+            sigma = eta * ((1 - alpha / alpha_next) * (1 - alpha_next) / (1 - alpha)).sqrt()
+            c = (1 - alpha_next - sigma ** 2).sqrt()
+
+            noise = torch.randn_like(f)
+
+            f = x_start * alpha_next.sqrt() + \
+                c * pred_noise + \
+                sigma * noise
+        return f
+
+    def model_predictions(self, f, t, conditional=None):
+        x_f = torch.clamp(f, min=-1 * self.scale, max=self.scale)
+        x_f = ((x_f / self.scale) + 1.) / 2.
+        if conditional is not None:
+            pred_f = self.rec_module(x=x_f, t=t, conditional=conditional)
+        else:
+            pred_f = self.rec_module(x_f, t)
+        pred_f = (pred_f * 2 - 1.) * self.scale
+        pred_f = torch.clamp(pred_f, min=-1 * self.scale, max=self.scale)
+        pred_noise = self.predict_noise_from_start(f, t, pred_f)
+        return pred_noise, pred_f
+
+    def predict_noise_from_start(self, x_t, t, x0):
+        return (
+                (extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t - x0) /
+                extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape)
+        )
+    
     def random_masking(self, x, mask_ratio):
         """
         Perform per-sample random masking by per-sample shuffling.
