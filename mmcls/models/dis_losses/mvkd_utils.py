@@ -36,9 +36,9 @@ class FeatRec(nn.Module):
         f_t1 = self.norm(self.dropout(f_t1))
 
         f_t2 = self.self_attn(f_t1, f_t1, f_t1)[0]
-        f_t = f_t1 + self.dropout(f_t2)
+        f_t2 = f_t1 + self.dropout(f_t2)
 
-        f_t3 = self.linear1(f_t)
+        f_t3 = self.linear1(f_t2)
         f_t = self.norm1(f_t + self.dropout(f_t3))
 
         temb = self.time_mlp(t)
